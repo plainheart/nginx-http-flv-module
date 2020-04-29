@@ -795,7 +795,7 @@ ngx_rtmp_gop_cache_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
         return NGX_OK;
     }
 
-    if (ctx->publishing == 0) {
+    if (!ctx->publishing) {
         return NGX_OK;
     }
 
@@ -822,11 +822,17 @@ ngx_rtmp_gop_cache_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
 static ngx_int_t
 ngx_rtmp_gop_cache_publish(ngx_rtmp_session_t *s, ngx_rtmp_publish_t *v)
 {
+    ngx_rtmp_live_ctx_t            *lctx;
     ngx_rtmp_gop_cache_app_conf_t  *gacf;
     ngx_rtmp_gop_cache_ctx_t       *ctx;
 
     gacf = ngx_rtmp_get_module_app_conf(s, ngx_rtmp_gop_cache_module);
     if (gacf == NULL || !gacf->gop_cache) {
+        goto next;
+    }
+
+    lctx = ngx_rtmp_get_module_ctx(s, ngx_rtmp_live_module);
+    if (lctx == NULL || !lctx->publishing) {
         goto next;
     }
 
@@ -837,7 +843,14 @@ ngx_rtmp_gop_cache_publish(ngx_rtmp_session_t *s, ngx_rtmp_publish_t *v)
     ctx = ngx_rtmp_get_module_ctx(s, ngx_rtmp_gop_cache_module);
     if (ctx == NULL) {
         ctx = ngx_palloc(s->connection->pool,
-                sizeof(ngx_rtmp_gop_cache_ctx_t));
+                         sizeof(ngx_rtmp_gop_cache_ctx_t));
+        if (ctx == NULL) {
+            ngx_log_error(NGX_LOG_ERR, s->connection->log, 0,
+                          "gop cache publish: failed to allocate for ctx");
+
+            return NGX_ERROR;
+        }
+
         ngx_rtmp_set_ctx(s, ctx, ngx_rtmp_gop_cache_module);
     }
 
@@ -911,7 +924,7 @@ ngx_rtmp_gop_cache_close_stream(ngx_rtmp_session_t *s,
         goto next;
     }
 
-    if (ctx->publishing == 0) {
+    if (!ctx->publishing) {
         goto next;
     }
 
