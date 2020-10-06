@@ -14,6 +14,10 @@ static ngx_rtmp_play_pt         next_play;
 static ngx_rtmp_close_stream_pt next_close_stream;
 
 
+ngx_rtmp_play_pt                http_flv_live_next_play;
+ngx_rtmp_close_stream_pt        http_flv_live_next_close_stream;
+
+
 static ngx_int_t ngx_http_flv_live_init(ngx_conf_t *cf);
 static void *ngx_http_flv_live_create_loc_conf(ngx_conf_t *cf);
 static char *ngx_http_flv_live_merge_loc_conf(ngx_conf_t *cf,
@@ -2078,7 +2082,8 @@ ngx_http_flv_live_connect_init(ngx_rtmp_session_t *s, ngx_str_t *app,
 #undef NGX_RTMP_SET_STRPAR
 
     ngx_memzero(name, NGX_RTMP_MAX_NAME);
-    ngx_memcpy(name, stream->data, stream->len);
+    ngx_memcpy(name, stream->data,
+               ngx_min(stream->len, NGX_RTMP_MAX_NAME - 1));
 
     if (ngx_rtmp_process_request_line(s, name, v.args,
             (const u_char *) "flv live connect") != NGX_OK)
